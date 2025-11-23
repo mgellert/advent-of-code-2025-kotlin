@@ -25,3 +25,9 @@ replay_pid*
 
 # Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
 .kotlin/
+
+# I don't want to commit IDE files
+.idea/
+
+# AoC does not like committed inputs
+input/
