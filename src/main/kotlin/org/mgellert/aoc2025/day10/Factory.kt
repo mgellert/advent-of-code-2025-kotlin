@@ -16,30 +16,35 @@ class Factory {
 
     fun part1(lines: List<String>): Long {
         val machines = lines.map { parse(it) }
-        return machines.sumOf { configure(it) }
+        return machines.sumOf { configure(it).toLong() }
+    }
+
+    fun configure(machine: Machine): Int {
+        var steps = 1
+        while (steps < 10) {
+            val result = configure(machine, steps)
+            if (result < Int.MAX_VALUE) return result
+            steps++
+        }
+        return Int.MAX_VALUE
     }
 
     fun configure(
         machine: Machine,
-        steps: Long = 0,
+        steps: Int,
+        step: Int = 0,
         state: List<Boolean> = List(machine.lights.size) { false },
-        cache: MutableMap<List<Boolean>, Long> = mutableMapOf()
-    ): Long {
-        if (steps > 8) {
-            return Long.MAX_VALUE
-        }
+    ): Int {
         if (state == machine.lights) {
-            return steps
+            return step
         }
-        if (state in cache && cache[state]!! < steps) {
-            return Long.MAX_VALUE
-        } else {
-            cache[state] = steps
+        if (step == steps) {
+            return Int.MAX_VALUE
         }
 
         return machine.buttons.minOf { button ->
             val newState = state.mapIndexed { i, s -> if (i in button) !s else s }
-            configure(machine, steps + 1, newState, cache)
+            configure(machine, steps, step + 1, newState)
         }
     }
 
