@@ -6,7 +6,7 @@ class Factory {
         val matchResult = regex.find(line)
         val (pattern, groups, numbers) = matchResult!!.destructured
 
-        val lights = pattern.map { it != '.' }
+        val lights = pattern.map { if (it == '#') 1 else 0 }
         val buttons = groups.trim().split(Regex("""\s+"""))
             .map { group -> group.removeSurrounding("(", ")").split(",").map { it.toInt() }.toSet() }
         val joltages = numbers.split(",").map { it.toInt() }
@@ -14,43 +14,46 @@ class Factory {
         return Machine(lights, buttons, joltages)
     }
 
-    fun part1(lines: List<String>): Long {
+    fun part1(lines: List<String>): Int {
         val machines = lines.map { parse(it) }
-        return machines.sumOf { configure(it).toLong() }
+        return machines.sumOf { fewestButtonsToConfigure(it) }
     }
 
-    fun configure(machine: Machine): Int {
-        var steps = 1
-        while (steps < 10) {
-            val result = configure(machine, steps)
-            if (result < Int.MAX_VALUE) return result
-            steps++
-        }
-        return Int.MAX_VALUE
+    fun fewestButtonsToConfigure(machine: Machine): Int {
+        val validSets = mutableSetOf<Set<Button>>()
+        fewestButtonsToConfigure(machine, validSets)
+        return validSets.minOfOrNull { it.size } ?: -1
     }
 
-    fun configure(
+    fun fewestButtonsToConfigure(
         machine: Machine,
-        steps: Int,
-        step: Int = 0,
-        state: List<Boolean> = List(machine.lights.size) { false },
-    ): Int {
-        if (state == machine.lights) {
-            return step
-        }
-        if (step == steps) {
-            return Int.MAX_VALUE
-        }
+        validSets: MutableSet<Set<Button>>,
+        selected: Set<Button> = mutableSetOf(),
+        invalidSets: MutableSet<Set<Button>> = mutableSetOf(),
+    ) {
+        val state = selected.fold(MutableList(machine.lights.size) { 0 }) { st, btn ->
+            btn.forEach { idx -> st[idx] += 1 }
+            st
+        }.map { it % 2 }
 
-        return machine.buttons.minOf { button ->
-            val newState = state.mapIndexed { i, s -> if (i in button) !s else s }
-            configure(machine, steps, step + 1, newState)
+        if (state == machine.lights) {
+            validSets.add(selected)
+            return
         }
+        invalidSets.add(selected)
+        machine.buttons
+            .filter { !selected.contains(it) }
+            .forEach { btn ->
+                if (!invalidSets.contains(selected + setOf(btn))) {
+                    fewestButtonsToConfigure(machine, validSets, selected + setOf(btn), invalidSets)
+                }
+            }
     }
+
 
     data class Machine(
-        val lights: List<Boolean>,
-        val buttons: List<Set<Int>>,
+        val lights: List<Int>,
+        val buttons: List<Button>,
         val joltages: List<Int>,
     )
 
@@ -58,3 +61,5 @@ class Factory {
         val regex = Regex("""\[([.#]+)\]\s+(.+?)\s+\{([\d,]+)\}""")
     }
 }
+
+typealias Button = Set<Int>
